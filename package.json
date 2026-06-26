@@ -19,7 +19,9 @@
   ],
   "scripts": {
     "build": "tsc",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test": "npm run build && node test/acceptance.mjs",
+    "test:acceptance": "node test/acceptance.mjs"
   },
   "dependencies": {
     "socket.io": "^4.8.0"
@@ -35,6 +37,7 @@
   "devDependencies": {
     "@termfleet/core": "^0.1.0",
     "@types/node": "^22.10.0",
+    "lucarne": "^0.8.0",
     "typescript": "^5.7.0"
   }
 }
