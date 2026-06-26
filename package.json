@@ -1,15 +1,22 @@
 {
   "name": "@termfleet/lucarne",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Optional bridge that surfaces a lucarne browser-session engine inside a termfleet console as iframe-porthole windows. termfleet and lucarne stay independent; this is the only module that knows both.",
   "type": "module",
   "license": "MIT",
   "author": "Aaron Volter",
-  "engines": { "node": ">=22" },
-  "bin": { "termfleet-lucarne": "dist/index.js" },
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "termfleet-lucarne": "dist/index.js"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build"
@@ -21,7 +28,9 @@
     "lucarne": ">=0.3.0"
   },
   "peerDependenciesMeta": {
-    "lucarne": { "optional": true }
+    "lucarne": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@termfleet/core": "^0.1.0",
