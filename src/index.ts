@@ -76,8 +76,11 @@ export async function startBridge(opts: BridgeOptions = {}): Promise<Bridge> {
     return {
       id: wid, name, windowKind: "iframe",
       iframe: {
-        src: `/sessions/${sessionId}/view/`,
-        resolvedSrc: `/providers/${providerKey}/sessions/${sessionId}/view/`,
+        // ?controls=1 → the porthole shows its OWN URL bar + back/forward, which
+        // drive the REMOTE browser (lucarne nav events). The console suppresses its
+        // redundant outer address bar when it sees controls=1.
+        src: `/sessions/${sessionId}/view/?controls=1`,
+        resolvedSrc: `/providers/${providerKey}/sessions/${sessionId}/view/?controls=1`,
       },
       bounds: { left, top, right: left + W, bottom: top + H, width: W, height: H },
       chrome: {

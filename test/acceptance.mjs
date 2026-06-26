@@ -54,8 +54,10 @@ try {
   const snap = await client.snapshot();
   check("snapshot: parses via @termfleet/core (one iframe window per session)",
     Array.isArray(snap.windows) && snap.windows.length === 1 && snap.windows[0].windowKind === "iframe" && snap.windows[0].name === "win1 (native)");
-  check("snapshot: window proxies the porthole through the console",
-    snap.windows[0].iframe?.resolvedSrc?.includes("/providers/") && snap.windows[0].iframe?.resolvedSrc?.endsWith("/sessions/win1/view/"));
+  check("snapshot: window proxies the porthole through the console with its own controls",
+    snap.windows[0].iframe?.resolvedSrc?.includes("/providers/")
+    && snap.windows[0].iframe?.resolvedSrc?.includes("/sessions/win1/view/")
+    && snap.windows[0].iframe?.resolvedSrc?.includes("controls=1"));
 
   // 3. CONTROL CHANNEL — socket.io emits provider:snapshot on connect (the
   //    chicken-and-egg the frontend needs to mark the provider "connected")

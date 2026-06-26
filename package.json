@@ -1,6 +1,6 @@
 {
   "name": "@termfleet/lucarne",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Optional bridge that surfaces a lucarne browser-session engine inside a termfleet console as iframe-porthole windows. termfleet and lucarne stay independent; this is the only module that knows both.",
   "type": "module",
   "license": "MIT",
