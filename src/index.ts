@@ -163,7 +163,19 @@ export async function startBridge(opts: BridgeOptions = {}): Promise<Bridge> {
       }
       ack?.({ ok: true });
     });
-    for (const ev of ["window:create", "window:move", "display:resize", "terminal:input",
+    // "new window" mints a real lucarne browser session (default native — the
+    // authentic lane); the fresh snapshot rides the ack + a live push.
+    socket.on("window:create", async (p: { profile?: string; backend?: string }, ack?: (r: unknown) => void) => {
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (lucarneToken) headers["authorization"] = `Bearer ${lucarneToken}`;
+      const body: Record<string, string> = { backend: p?.backend ?? "native" };
+      if (p?.profile) body.profile = p.profile;
+      await fetch(`${lucarneUrl}/sessions`, { method: "POST", headers, body: JSON.stringify(body) }).catch(() => {});
+      const s = await snapshot();
+      io.emit("provider:snapshot", s);
+      ack?.({ ok: true, snapshot: s });
+    });
+    for (const ev of ["window:move", "display:resize", "terminal:input",
       "agent:create", "agent-session:input", "agent-session:close",
       "agent-session:subscribe", "agent-session:unsubscribe", "terminal:effect"]) {
       socket.on(ev, (_p: unknown, ack?: (r: unknown) => void) => ack?.({ ok: true }));

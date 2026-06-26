@@ -30,11 +30,11 @@ a live in-process lucarne — driven through the console's OWN `@termfleet/core`
 - ✅ `lucarne` pinned as a devDep and the proofs run against it; the porthole paths
   (`/sessions/:id/view`, `/view/ws`) are unchanged from the 0.2-era, verified live.
 
-## L2 — Mint a browser session from the console ⬜
-- ⬜ `window:create` (today a no-op ack) creates a lucarne session
-  (`POST /sessions`) and returns the new window — so "new window" in the console opens
-  a browser, not just lists existing ones. *(Proof: emit window:create → a lucarne
-  session exists + the next snapshot has its window.)*
+## L2 — Mint a browser session from the console ✅
+- ✅ `window:create` creates a lucarne session (`POST /sessions`, default native — the
+  authentic lane) and rides a fresh snapshot back on the ack + a live push, so "new
+  window" in the console opens a browser. *(Proof: emit window:create → a lucarne
+  session exists + the snapshot has its window.)*
 
 ## L3 — Richer window identity ⬜
 - ⬜ name/label from lucarne session metadata; backend (native/docker) badge; honour a
@@ -46,4 +46,4 @@ a live in-process lucarne — driven through the console's OWN `@termfleet/core`
   porthole.
 
 ## Release
-- ⬜ republish `@termfleet/lucarne@0.3.0` once L0–L1 land (committed proofs + 0.8.0).
+- ✅ `@termfleet/lucarne@0.3.0` — committed proofs (9/9) + lucarne 0.8.0 + window:create.

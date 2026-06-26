@@ -84,7 +84,12 @@ try {
   });
   check("porthole(ws): a real JPEG frame proxies through the bridge", frameLen > 1000, `${frameLen}B`);
 
-  // 6. WINDOW:CLOSE — closing the window destroys the lucarne session
+  // 6. WINDOW:CREATE — "new window" mints a real lucarne browser session
+  const createAck = await new Promise((resolve) => sock.emit("window:create", { profile: "win2", backend: "native" }, (r) => resolve(r)));
+  check("control: window:create mints a new lucarne browser session",
+    createAck?.ok === true && luc.list().some((s) => s.id === "win2") && createAck.snapshot?.windows?.length === 2);
+
+  // 7. WINDOW:CLOSE — closing the window destroys the lucarne session
   const wid = snap.windows[0].id;
   const ack = await new Promise((resolve) => sock.emit("window:close", { id: wid }, (r) => resolve(r)));
   await sleep(400);
