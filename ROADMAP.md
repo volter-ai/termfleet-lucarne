@@ -36,9 +36,12 @@ a live in-process lucarne — driven through the console's OWN `@termfleet/core`
   window" in the console opens a browser. *(Proof: emit window:create → a lucarne
   session exists + the snapshot has its window.)*
 
-## L3 — Richer window identity ⬜
-- ⬜ name/label from lucarne session metadata; backend (native/docker) badge; honour a
-  requested profile/backend on create.
+## L3 — Identity + resilience ✅
+- ✅ window name carries the lucarne backend (`win1 (native)`); `window:create` honours a
+  requested profile/backend.
+- ✅ **resilience:** a down lucarne never takes the provider offline — the bridge stays
+  healthy and the snapshot empties (0 windows) instead of throwing. *(Proof: close lucarne →
+  `ProviderClient.health` ok + snapshot parses with 0 windows.)*
 
 ## L4 — Surface more of lucarne (optional) ⬜
 - ⬜ expose recording/replay + logs through the window chrome (lucarne already serves

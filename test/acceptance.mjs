@@ -98,6 +98,14 @@ try {
 
   // 7. SELF-REGISTRATION — bridge registered as a bare-pointer provider
   check("register: posts a bare-pointer registration to the console", registered?.baseUrl === bridgeUrl && registered?.label === "lucarne");
+
+  // 8. RESILIENCE — a down lucarne must not take the bridge offline: the provider
+  //    stays healthy and the snapshot empties (instead of throwing / showing offline)
+  await luc.close();
+  const downHealth = await client.health();
+  const downSnap = await client.snapshot();
+  check("resilience: bridge stays healthy + snapshot empties when lucarne is down",
+    downHealth.ok === true && Array.isArray(downSnap.windows) && downSnap.windows.length === 0);
 } finally {
   if (bridge) await bridge.close().catch(() => {});
   await luc.close().catch(() => {});
