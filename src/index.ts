@@ -9,6 +9,8 @@
 //   • /sessions/:id/view*          → reverse-proxied to lucarne's porthole
 //                                    (so the console can proxy it over the tunnel)
 import http from "node:http";
+import net from "node:net";
+import { Server as IOServer } from "socket.io";
 
 const LUCARNE_URL = process.env.LUCARNE_URL ?? "http://127.0.0.1:7800";
 const LUCARNE_TOKEN = process.env.LUCARNE_TOKEN;
@@ -23,6 +25,11 @@ interface LucarneSession { id: string; backend: string; viewUrl: string }
 const windowIds = new Map<string, number>();
 let nextWindowId = 1;
 let revision = 0;
+
+function sessionIdForWindow(wid: number): string | undefined {
+  for (const [sid, id] of windowIds) if (id === wid) return sid;
+  return undefined;
+}
 
 async function lucarne(path: string): Promise<unknown> {
   const headers: Record<string, string> = {};
@@ -70,12 +77,18 @@ async function snapshot(): Promise<Record<string, unknown>> {
   return {
     epoch: "lucarne-bridge",
     instanceId: "lucarne-bridge",
-    provider: "lucarne",
+    // termfleet's snapshot `provider` is a CLOSED enum (iterm|virtual-tmux|wezterm)
+    // validated by @termfleet/core — an unknown value is rejected ("unsupported
+    // provider") and the provider shows offline. There's no "browser"/"external"
+    // kind yet, so we present a valid one; the board still shows the "lucarne"
+    // label (from registration) and renders our iframe windows regardless of kind.
+    provider: "virtual-tmux",
     revision: ++revision,
     observedAt: new Date().toISOString(),
     displayBounds: { left: 0, top: 0, right: 1920, bottom: 1080, width: 1920, height: 1080 },
     windows,
-    lifecycle: { pid: process.pid, panes: [] },
+    // @termfleet/core parseProviderSnapshot requires lifecycle with BOTH arrays
+    lifecycle: { panes: [], sessions: [] },
   };
 }
 
@@ -117,6 +130,60 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(500, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: String((e as Error).message ?? e) }));
   }
+});
+
+// termfleet provider control channel. The frontend marks a provider "connected"
+// only once its socket.io connection (path /control/socket.io) is up AND it has
+// received a `provider:snapshot` with displayBounds — without this the provider
+// shows offline / 0 windows. (Protocol owned by termfleet; see @termfleet/core.)
+const io = new IOServer(server, {
+  path: "/control/socket.io",
+  transports: ["websocket"],
+  cors: { origin: true },           // access control is the console proxy's job
+});
+io.on("connection", (socket) => {
+  void snapshot().then((s) => socket.emit("provider:snapshot", s)).catch(() => {});
+  // closing a window destroys the underlying lucarne session
+  socket.on("window:close", async (p: { id?: number }, ack?: (r: unknown) => void) => {
+    const sid = typeof p?.id === "number" ? sessionIdForWindow(p.id) : undefined;
+    if (sid) {
+      const headers: Record<string, string> = {};
+      if (LUCARNE_TOKEN) headers["authorization"] = `Bearer ${LUCARNE_TOKEN}`;
+      await fetch(`${LUCARNE_URL}/sessions/${sid}`, { method: "DELETE", headers }).catch(() => {});
+    }
+    ack?.({ ok: true });
+  });
+  // read-only for the rest: acknowledge so the UI never hangs on a command
+  for (const ev of ["window:create", "window:move", "display:resize", "terminal:input",
+    "agent:create", "agent-session:input", "agent-session:close",
+    "agent-session:subscribe", "agent-session:unsubscribe", "terminal:effect"]) {
+    socket.on(ev, (_p: unknown, ack?: (r: unknown) => void) => ack?.({ ok: true }));
+  }
+});
+// push live snapshots so new/closed sessions appear on the board
+setInterval(() => { void snapshot().then((s) => io.emit("provider:snapshot", s)).catch(() => {}); }, 3000);
+
+// Proxy the porthole WebSocket (/sessions/:id/view/ws) through to lucarne, raw.
+// socket.io owns /control/socket.io; we only act on the porthole ws path.
+server.on("upgrade", (req, socket, head) => {
+  const pathname = new URL(req.url ?? "/", "http://x").pathname;
+  if (!/^\/sessions\/.+\/view\/ws$/.test(pathname)) return; // leave /control/socket.io to socket.io
+  const target = new URL(LUCARNE_URL);
+  const qs = LUCARNE_TOKEN ? `?token=${encodeURIComponent(LUCARNE_TOKEN)}` : "";
+  const upstream = net.connect(Number(target.port || 80), target.hostname, () => {
+    const lines = [`GET ${pathname}${qs} HTTP/1.1`];
+    for (const [k, v] of Object.entries(req.headers)) {
+      if (k.toLowerCase() === "host") continue;
+      lines.push(`${k}: ${Array.isArray(v) ? v.join(", ") : v}`);
+    }
+    lines.push(`host: ${target.host}`, "", "");
+    upstream.write(lines.join("\r\n"));
+    if (head?.length) upstream.write(head);
+    socket.pipe(upstream);
+    upstream.pipe(socket);
+  });
+  upstream.on("error", () => socket.destroy());
+  socket.on("error", () => upstream.destroy());
 });
 
 async function registerWithConsole(): Promise<void> {

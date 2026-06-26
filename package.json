@@ -14,6 +14,9 @@
     "build": "tsc",
     "prepublishOnly": "npm run build"
   },
+  "dependencies": {
+    "socket.io": "^4.8.0"
+  },
   "peerDependencies": {
     "lucarne": ">=0.3.0"
   },
@@ -21,6 +24,7 @@
     "lucarne": { "optional": true }
   },
   "devDependencies": {
+    "@termfleet/core": "^0.1.0",
     "@types/node": "^22.10.0",
     "typescript": "^5.7.0"
   }
